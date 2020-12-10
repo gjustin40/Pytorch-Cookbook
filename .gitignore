@@ -1,2 +1,17 @@
 
 *.txt
+data/cifar-10-batches-py/data_batch_2
+data/cifar-10-batches-py/data_batch_1
+data/cifar-10-batches-py/data_batch_3
+*.pyc
+data/cifar-10-batches-py/data_batch_4
+data/cifar-10-batches-py/data_batch_5
+*.meta
+*.gz
+data/MNIST/raw/t10k-images-idx3-ubyte
+data/MNIST/raw/t10k-labels-idx1-ubyte
+data/MNIST/raw/train-images-idx3-ubyte
+data/MNIST/raw/train-labels-idx1-ubyte
+*.pth
+*.pt
+data/cifar-10-batches-py/test_batch
