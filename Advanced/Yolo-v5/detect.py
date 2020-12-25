@@ -19,8 +19,13 @@ def detect(save_img=False):
     # attempt_download() : github release가서 다운로드 받음. url = 'https://github.com/ultralytics/yolov3/releases/download/v1.0/' + file
     # for w in weights if isinstance(weights, list) else [weights]  : 반복열이 if문에 의해서 바뀐다.(weights -> [weights]) 즉, weights가 여러개면 그냥 weights, 1개면 [weights] 왜? 1개면 문자열 하나하나로 가니까 ㅋㅋㅋㅋ
     # .yaml 파일 : XML과 비슷한 거고 '인간이 쉽게 읽을 수 있는 데이터 직렬화 언어임'
-    # torch.load('yolov3.pt')에서 pt값 뿐만 아니라 models도 불러와야 함.(models module 없다고 찡찡댐) 여기서 중요한게 model을 설계할 때 yaml파일로 설계한다는 사실임....
+    # torch.load('yolov5.pt')에서 pt값 뿐만 아니라 models도 불러와야 함.(models module 없다고 찡찡댐)
     # yaml 파일로 model을 만드는 부분을 잘 생각해야함. >>> 이거 아님. yaml 파일 지워도 작동 잘 함.... yolo.py 파일이 중요함
 
 
     # yolo.py 지지고 볶아보자.
+    # yolo.py 지지고 볶기 전에 알아야 할 메소드들이 졸라 많음
+    # Conv2d에서 group옵션의 효과 : AlexNet 처럼 group 수 만큼 나눠서 Conv을 진행한다. group=1이면 그냥 알던 conv, group=2면 AlexNet철머 위, 아래로 찢어져서 따로 Conv 진행
+    # - 각 필터가 다른 양상을 학습하는 효과가 있다.
+
+    
