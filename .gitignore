@@ -15,3 +15,5 @@ data/MNIST/raw/train-labels-idx1-ubyte
 *.pth
 *.pt
 data/cifar-10-batches-py/test_batch
+
+.ipynb_checkpoints
