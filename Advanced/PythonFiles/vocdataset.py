@@ -1,5 +1,8 @@
 import torch
 from torchvision.datasets import VOCDetection
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from PIL import Image
 import numpy as np
 try:
@@ -34,3 +37,30 @@ class myVOCDetection(VOCDetection):
             targets = self.transform(np.array(targets))
         
         return img, targets, labels
+    
+
+def pascal_show(dataloader, figsize):
+    CLASSES = ['__background__', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus',
+                'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
+                'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+    
+    images, bboxes, labels = iter(dataloader).next()
+    
+    fig, axes = plt.subplots(*figsize, figsize=(15,10))
+    axes = axes.ravel()
+    for i in range(len(images)):
+        img = images[i].permute(1,2,0)
+        
+        for box, label in zip(bboxes[i][0], labels[i]):
+            rect = patches.Rectangle((box[0], box[1]), 
+                                     box[2]-box[0], 
+                                     box[3]-box[1], 
+                                     linewidth=3, edgecolor='r', facecolor='none')
+            axes[i].add_patch(rect)
+            axes[i].text(box[0], box[1], CLASSES[label], fontsize=15)
+            
+        axes[i].imshow(img)
+        axes[i].axis('off')
+        
+    plt.tight_layout()
+    plt.show() 
