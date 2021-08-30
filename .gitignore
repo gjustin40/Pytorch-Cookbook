@@ -1,3 +1,5 @@
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
 
 *.txt
 data/cifar-10-batches-py/data_batch_2
