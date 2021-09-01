@@ -104,17 +104,17 @@ def coco_show(dataloader, figsize):
     plt.show() 
     
     
-from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
+# from torch.utils.data import DataLoader
+# import torchvision.transforms as transforms
 
-image_path = '../../data/COCO/val2017'
-ann_path = '../../data/COCO/annotations/instances_val2017.json'
-def collate_fn(batch):
-    return tuple(zip(*batch))
+# image_path = '../../data/COCO/val2017'
+# ann_path = '../../data/COCO/annotations/instances_val2017.json'
+# def collate_fn(batch):
+#     return tuple(zip(*batch))
 
-dataset = myCocoDetection(root=image_path, annFile=ann_path, transform=transforms.ToTensor())
-dataset_loader = DataLoader(dataset, batch_size=4, collate_fn=collate_fn)
-print(iter(dataset_loader).next())
+# dataset = myCocoDetection(root=image_path, annFile=ann_path, transform=transforms.ToTensor())
+# dataset_loader = DataLoader(dataset, batch_size=4, collate_fn=collate_fn)
+# print(iter(dataset_loader).next())
 
 
 
