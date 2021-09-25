@@ -8,6 +8,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 
+import matplotlib.pyplot as plt
+
 from dataset import myDataset
 from model import AutoEncoder
 
@@ -36,14 +38,15 @@ def val(opt, model, dataloader, loss_func, device, e):
     model.eval()
     val_iter_loss = []
     
-    for i, (images, labels) in enumerate(dataloader):
-        images, labels = images.to(device), labels.to(device)
+    with torch.no_grad():
+        for i, (images, labels) in enumerate(dataloader):
+            images, labels = images.to(device), labels.to(device)
 
-        outputs = model(images)
-        loss = loss_func(outputs, labels)
-        val_iter_loss.append(loss.item())
+            outputs = model(images)
+            loss = loss_func(outputs, labels)
+            val_iter_loss.append(loss.item())
     
-    print(f'Validation Epoch[{e+1}/{opt.epoch}] / Loss : {sum(val_iter_loss)/len(dataloader)}')
+        print(f'Validation Epoch[{e+1}/{opt.epoch}] / Loss : {sum(val_iter_loss)/len(dataloader)}')
     
     return val_iter_loss
     
@@ -55,8 +58,8 @@ def parse_opt():
     parser.add_argument('--val_path', help='validation dataset', type=str)
 
     parser.add_argument('--epoch', help='epoch', default=20, type=int)
-    parser.add_argument('--train_batch_size', help='train batch_size', default=16, type=int)
-    parser.add_argument('--val_batch_size', help='validation batch_size', default=8, type=int)
+    parser.add_argument('--train_batch_size', help='train batch_size', default=32, type=int)
+    parser.add_argument('--val_batch_size', help='validation batch_size', default=32, type=int)
     parser.add_argument('--lr', help='learning rate', default=0.001, type=float)
     
     opt = parser.parse_args()
@@ -92,13 +95,35 @@ def main(opt):
         
     # Train
     print('Training....')
+    
+    train_epoch_loss = []
+    val_epoch_loss = []
+    train_iter_losses = []
+    val_iter_losses = []
     for e in range(opt.epoch):
         train_iter_loss = train(opt, model, train_loader, optimizer, loss_func, device, e)
+        train_iter_losses += train_iter_loss
+        train_epoch_loss.append(sum(train_iter_loss))
         
-        if e+1 == 5:
-            val_iter_loss = val(opt, model, val_loader, loss_func, device, e)
-        
-        
+        val_iter_loss = val(opt, model, val_loader, loss_func, device, e)
+        val_iter_losses += val_iter_loss
+        val_epoch_loss.append(sum(val_iter_loss))
+            
+        # save model
+        best = 10000
+        if val_epoch_loss[-1] < best:
+            print('Saving Model....')
+            torch.save(model, 'weights/AutoEncoder_try1.pth')
+            best = val_epoch_loss[-1]
+    
+    print('Saving Result')
+    plt.figure(figsize=(10,10))
+    plt.plot(train_iter_losses)
+    plt.plot(val_iter_losses)
+    plt.legend(['Train_loss', 'Val_loss'])
+    
+    plt.savefig('Result.jpg')
+    
 if __name__ == '__main__':
     opt = parse_opt()
     main(opt)
