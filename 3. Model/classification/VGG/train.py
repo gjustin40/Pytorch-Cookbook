@@ -25,10 +25,10 @@ def parse_opt():
     parser.add_argument('--momentum', help='Momentum', default=0.9, type=float)
     parser.add_argument('--cuda', help='Using GPU', default=True, type=bool)
     parser.add_argument('--save_folder', help='Directory of Saving weight', default='', type=str)
-    
     opt = parser.parse_args()
     
     return opt
+
 
 def train(model, dataloader, optimizer, loss_func, device):
     model.train()
@@ -38,6 +38,7 @@ def train(model, dataloader, optimizer, loss_func, device):
     
     for i, (images, labels) in enumerate(dataloader):
         images, labels = images.cuda(), labels.cuda()
+        data_size += images.shape[0]
         
         optimizer.zero_grad()
         outputs = model(images)
@@ -45,14 +46,13 @@ def train(model, dataloader, optimizer, loss_func, device):
         loss.backward()
         optimizer.step()
 
-        data_size += images.shape[0]
         iter_loss.append(loss.item())
-
         corrects += sum(outputs.argmax(axis=1) == labels).item()
 
         if (i+1) % 40 == 0:
             print(f'Iter[{i+1}/{len(dataloader)}] --- Loss: {sum(iter_loss)/data_size:0.4} --- Accuracy: {corrects/data_size:0.2}')
     return sum(iter_loss)/data_size, corrects/data_size
+
 
 def test(model, dataloader, loss_func, device):
     model.eval()
@@ -63,13 +63,12 @@ def test(model, dataloader, loss_func, device):
         data_size = 0
         for i, (images, labels) in enumerate(dataloader):
             images, labels = images.cuda(), labels.cuda()
+            data_size += images.shape[0]
             
             outputs = model(images)
             loss = loss_func(outputs, labels)
             
-            data_size += images.shape[0]
             iter_loss.append(loss.item())
-
             corrects += sum(outputs.argmax(axis=1) == labels).item()
     
     print(f'Iter[{i+1}/{len(dataloader)}] --- Loss: {sum(iter_loss)/data_size:0.4} --- Accuracy: {corrects/data_size:0.2}')
@@ -87,8 +86,6 @@ def main(opt):
     
     # Dataset
     print('Preparing Dataset....')
-
-    
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
