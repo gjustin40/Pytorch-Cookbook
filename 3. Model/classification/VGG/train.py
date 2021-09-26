@@ -145,10 +145,11 @@ def main(opt):
     loss_func = nn.CrossEntropyLoss()
     
     # Training
+    start = time.time()
     for e in range(start_epoch, start_epoch+opt.epoch):
         train_result += train(model, train_loader, optimizer, loss_func, device, start_epoch, e)
         test_result += test(model, test_loader, loss_func, device, start_epoch, e)
-
+        
         # Save checkpoint
         if test_result[1::2][-1] > best_acc:
             print(f'Saving Model....({result_path})')
@@ -166,7 +167,17 @@ def main(opt):
         if opt.save_result:
             print(f'Saving Result....({result_path})')
             save_result(train_result, test_result, result_path)
-        
+            
+    end = time.time()
+    with open(f'{result_path}/time_log.txt', 'w') as f:
+        f.write(str(datetime.timedelta(seconds=end-start)))
+        f.close()
+                
+import time
+import datetime
+
 if __name__ == '__main__':
     opt = parse_opt()
+    
     main(opt)
+    
