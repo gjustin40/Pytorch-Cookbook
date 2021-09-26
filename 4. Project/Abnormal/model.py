@@ -39,6 +39,6 @@ class AutoEncoder(nn.Module):
         x = self.up(x)
         x = F.relu(self.decoder4(x))
         x = self.up(x)
-        decoder = F.relu(self.decoder5(x))
+        decoder = self.decoder5(x)
         
         return decoder

@@ -6,6 +6,9 @@ from model import AutoEncoder
 import numpy as np
 from torchvision.transforms import ToTensor
 
+import warnings
+warnings.filterwarnings("ignore")
+
 def parse_opt():
     parser = argparse.ArgumentParser(description='Decode Image')
     parser.add_argument('--image_path', help='Image path', default='./example.jpg', type=str)
@@ -31,7 +34,10 @@ def main(opt):
         output = model(image.to(device))
        
     image_np = np.array(output.cpu().squeeze(0).permute(1,2,0))
+
+    image_np = Image.open('example.jpg')
     plt.imshow(image_np)
+    
     plt.show()
     
 if __name__ == '__main__':
