@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import torch
 import torch.nn as nn
@@ -11,8 +12,7 @@ from torchvision.datasets import CIFAR10, MNIST
 import matplotlib.pyplot as plt
 
 from model import VGG
-from utils import save_result
-
+from utils import save_result, make_folder
 
 def parse_opt():
     parser = argparse.ArgumentParser()
@@ -28,7 +28,7 @@ def parse_opt():
     parser.add_argument('--momentum', help='Momentum', default=0.9, type=float)
     parser.add_argument('--cuda', help='Using GPU', default=True, type=bool)
     parser.add_argument('--save_result', help='Save Result of Train&Test', default=True, type=bool)
-    parser.add_argument('--save_folder', help='Directory of Saving weight', default='', type=str)
+    parser.add_argument('--save_folder', help='Directory of Saving weight', default='train0', type=str)
     opt = parser.parse_args()
     
     return opt
@@ -54,7 +54,7 @@ def train(model, dataloader, optimizer, loss_func, device, e):
         iter_loss.append(loss.item())
         corrects += sum(outputs.argmax(axis=1) == labels).item()
 
-        if (i+1) % 40 == 0:
+        if ((i+1) % 40 == 0) or ((i+1) == len(dataloader)) :
             print(f'Iter[{i+1}/{len(dataloader)}] --- Loss: {sum(iter_loss)/data_size:0.4} --- Accuracy: {corrects/data_size:0.2}')
     return [sum(iter_loss)/data_size, corrects/data_size]
 
@@ -82,6 +82,11 @@ def test(model, dataloader, loss_func, device, e):
             
         
 def main(opt):
+    # make folder
+    base_path = 'result'
+    os.makedirs(base_path, exist_ok=True)
+    result_path = make_folder(base_path, opt.save_folder)
+    print(result_path)
     
     datasets = {
         'mnist': r'C:\Users\gjust\Documents\Github\data',
@@ -123,21 +128,19 @@ def main(opt):
     loss_func = nn.CrossEntropyLoss()
     
     # Training
-    trian_result, test_result = [], []   
+    train_result, test_result = [], []   
     best = 0
     for e in range(opt.epoch):
-        
         train_result += train(model, train_loader, optimizer, loss_func, device, e)
-        
         test_result += test(model, test_loader, loss_func, device, e)
-        
-        if test_result[-1][1] > best:
+
+        if test_result[1::2][-1] > best:
             print('Saving Model....')
-            torch.save(model, f'weights/{opt.model}.pth')
-            best = test_result[-1][1]
+            torch.save(model, f'{result_path}/{opt.model}.pth')
+            best = test_result[1::2][-1]
             
         if opt.save_result:
-            save_result(train_result, test_result)
+            save_result(train_result, test_result, result_path)
         
 if __name__ == '__main__':
     opt = parse_opt()
