@@ -3,12 +3,15 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10, MNIST
 
+import matplotlib.pyplot as plt
+
 from model import VGG
+from utils import save_result
 
 
 def parse_opt():
@@ -24,18 +27,20 @@ def parse_opt():
     parser.add_argument('--lr', help='Learning Rate', default=0.01, type=float)
     parser.add_argument('--momentum', help='Momentum', default=0.9, type=float)
     parser.add_argument('--cuda', help='Using GPU', default=True, type=bool)
+    parser.add_argument('--save_result', help='Save Result of Train&Test', default=True, type=bool)
     parser.add_argument('--save_folder', help='Directory of Saving weight', default='', type=str)
     opt = parser.parse_args()
     
     return opt
 
 
-def train(model, dataloader, optimizer, loss_func, device):
+def train(model, dataloader, optimizer, loss_func, device, e):
+    print(f'EPOCH[{e+1}/{opt.epoch}] Training....')
     model.train()
     iter_loss = []
     corrects = 0
     data_size = 0
-    
+      
     for i, (images, labels) in enumerate(dataloader):
         images, labels = images.cuda(), labels.cuda()
         data_size += images.shape[0]
@@ -51,10 +56,11 @@ def train(model, dataloader, optimizer, loss_func, device):
 
         if (i+1) % 40 == 0:
             print(f'Iter[{i+1}/{len(dataloader)}] --- Loss: {sum(iter_loss)/data_size:0.4} --- Accuracy: {corrects/data_size:0.2}')
-    return sum(iter_loss)/data_size, corrects/data_size
+    return [sum(iter_loss)/data_size, corrects/data_size]
 
 
-def test(model, dataloader, loss_func, device):
+def test(model, dataloader, loss_func, device, e):
+    print(f'EPOCH[{e+1}/{opt.epoch}] Teseting....')
     model.eval()
     iter_loss = []
     corrects = 0
@@ -72,7 +78,7 @@ def test(model, dataloader, loss_func, device):
             corrects += sum(outputs.argmax(axis=1) == labels).item()
     
     print(f'Iter[{i+1}/{len(dataloader)}] --- Loss: {sum(iter_loss)/data_size:0.4} --- Accuracy: {corrects/data_size:0.2}')
-    return sum(iter_loss)/data_size, corrects/data_size
+    return [sum(iter_loss)/data_size, corrects/data_size]
             
         
 def main(opt):
@@ -117,41 +123,22 @@ def main(opt):
     loss_func = nn.CrossEntropyLoss()
     
     # Training
-    train_epoch_list, test_epoch_list = [], []
-    train_acc_list, test_acc_list = [], []
-    
+    trian_result, test_result = [], []   
     best = 0
     for e in range(opt.epoch):
-        print(f'EPOCH[{e+1}/{opt.epoch}] Training....')
-        train_loss, train_acc = train(model, train_loader, optimizer, loss_func, device)
-        print(f'EPOCH[{e+1}/{opt.epoch}] Teseting....')
-        test_loss, test_acc = test(model, test_loader, loss_func, device)
-
-        train_epoch_list.append(train_loss)
-        test_epoch_list.append(test_loss)
-        train_acc_list.append(train_acc)
-        test_acc_list.append(test_acc)
         
+        train_result += train(model, train_loader, optimizer, loss_func, device, e)
         
-        if test_acc_list[-1] > best:
+        test_result += test(model, test_loader, loss_func, device, e)
+        
+        if test_result[-1][1] > best:
             print('Saving Model....')
             torch.save(model, f'weights/{opt.model}.pth')
-            best = test_acc_list[-1]
+            best = test_result[-1][1]
+            
+        if opt.save_result:
+            save_result(train_result, test_result)
         
-    import matplotlib.pyplot as plt
-    
-    plt.figure(figsize=(10,10))
-    plt.plot(train_epoch_list)
-    plt.plot(test_epoch_list)
-    plt.plot(train_acc_list)
-    plt.plot(test_acc_list)
-    plt.legend(['Train_loss', 'Test_loss', 'Train_acc', 'Test_acc'])
-    plt.savefig('result.jpg')
-    # validation
-    
-    # save model
-    
-    print('successed!')
 if __name__ == '__main__':
     opt = parse_opt()
     main(opt)
