@@ -27,6 +27,7 @@ def parse_opt():
     parser.add_argument('--lr', help='Learning Rate', default=0.01, type=float)
     parser.add_argument('--momentum', help='Momentum', default=0.9, type=float)
     parser.add_argument('--cuda', help='Using GPU', default=True, type=bool)
+    parser.add_argument('--resume', help='Start from checkpoint', default='', type=str)
     parser.add_argument('--save_result', help='Save Result of Train&Test', default=True, type=bool)
     parser.add_argument('--save_folder', help='Directory of Saving weight', default='train0', type=str)
     opt = parser.parse_args()
@@ -34,8 +35,8 @@ def parse_opt():
     return opt
 
 
-def train(model, dataloader, optimizer, loss_func, device, e):
-    print(f'EPOCH[{e+1}/{opt.epoch}] Training....')
+def train(model, dataloader, optimizer, loss_func, device, start_epoch, e):
+    print(f'EPOCH[{e+1}/{start_epoch+opt.epoch}] Training....')
     model.train()
     iter_loss = []
     corrects = 0
@@ -59,8 +60,8 @@ def train(model, dataloader, optimizer, loss_func, device, e):
     return [sum(iter_loss)/data_size, corrects/data_size]
 
 
-def test(model, dataloader, loss_func, device, e):
-    print(f'EPOCH[{e+1}/{opt.epoch}] Teseting....')
+def test(model, dataloader, loss_func, device, start_epoch, e):
+    print(f'EPOCH[{e+1}/{start_epoch+opt.epoch}] Teseting....')
     model.eval()
     iter_loss = []
     corrects = 0
@@ -82,12 +83,14 @@ def test(model, dataloader, loss_func, device, e):
             
         
 def main(opt):
+    
     # make folder
     base_path = 'result'
     os.makedirs(base_path, exist_ok=True)
-    result_path = make_folder(base_path, opt.save_folder)
-    print(result_path)
+    result_path = make_folder(base_path, opt.save_folder)      
     
+    # Dataset
+    print('Preparing Dataset....')
     datasets = {
         'mnist': r'C:\Users\gjust\Documents\Github\data',
         'cifar10': r'C:\Users\gjust\Documents\Github\data',
@@ -95,8 +98,6 @@ def main(opt):
     }
     data_path = datasets[opt.dataset]
     
-    # Dataset
-    print('Preparing Dataset....')
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
@@ -123,23 +124,47 @@ def main(opt):
     model = VGG(opt.model, opt.in_channels, opt.num_classes, opt.batch_norm)
     model.to(device)
     
+    # resuming
+    if opt.resume:
+        print('Resuming from checkpoint')
+        assert os.path.isdir(f'{opt.resume}')
+        checkpoint = torch.load(f'{opt.resume}/{opt.model}_ckpt.pth')
+        model.load_state_dict(checkpoint['model'])
+        best_acc = checkpoint['acc']
+        start_epoch = checkpoint['epoch']
+        train_result = checkpoint['train_result']
+        test_result = checkpoint['test_result']
+    else:
+        start_epoch = 0
+        best_acc = 0
+        train_result, test_result = [], [] 
+        
+        
     # optmizer
     optimizer = optim.SGD(model.parameters(), lr=opt.lr, momentum=opt.momentum)
     loss_func = nn.CrossEntropyLoss()
     
     # Training
-    train_result, test_result = [], []   
-    best = 0
-    for e in range(opt.epoch):
-        train_result += train(model, train_loader, optimizer, loss_func, device, e)
-        test_result += test(model, test_loader, loss_func, device, e)
+    for e in range(start_epoch, start_epoch+opt.epoch):
+        train_result += train(model, train_loader, optimizer, loss_func, device, start_epoch, e)
+        test_result += test(model, test_loader, loss_func, device, start_epoch, e)
 
-        if test_result[1::2][-1] > best:
-            print('Saving Model....')
-            torch.save(model, f'{result_path}/{opt.model}.pth')
+        # Save checkpoint
+        if test_result[1::2][-1] > best_acc:
+            print(f'Saving Model....({result_path})')
+            state = {
+                'model': model.state_dict(),
+                'epoch': e+1,
+                'acc': test_result[1::2][-1],
+                'train_result': train_result,
+                'test_result': test_result
+            }
+            torch.save(state, f'{result_path}/{opt.model}_ckpt.pth')
             best = test_result[1::2][-1]
             
+        # Save Result
         if opt.save_result:
+            print(f'Saving Result....({result_path})')
             save_result(train_result, test_result, result_path)
         
 if __name__ == '__main__':

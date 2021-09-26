@@ -10,7 +10,6 @@ def save_result(train_result, test_result, result_path):
     test_acc = test_result[1::2]
     
     plt.figure(figsize=(12,7))
-    print(train_loss)
     plt.subplot(1,2,1)
     plt.plot(train_acc)
     plt.plot(test_acc)
@@ -21,7 +20,6 @@ def save_result(train_result, test_result, result_path):
     plt.plot(test_loss)
     plt.legend(['Train_loss', 'Test_loss'])
     
-    print('Saving Result....')
     plt.savefig(f'{result_path}/result.jpg')
     
     return None
@@ -35,10 +33,12 @@ def make_folder(base_path, folder):
         
     except:
         exist_folders = os.listdir(f'./{base_path}')
-        exist_folders.sort(key=lambda x: x[-1])
-        last_num = exist_folders[-1][-1]
+        exist_folders.sort(key=lambda x: int(x[5:]))
+        print(exist_folders)
+        last_num = exist_folders[-1][5:]
         new_num = int(last_num) + 1
         new_folder = f'./{base_path}/train' + str(new_num)
+        print(new_folder)
         os.mkdir(new_folder)
         
     return new_folder
