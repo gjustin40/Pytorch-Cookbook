@@ -118,7 +118,8 @@ def main(opt):
      
     # GPU
     device = 'cuda' if (torch.cuda.is_available() and opt.cuda) else 'cpu'
-        
+    print(f'Using {device}')
+    
     # model
     print('Preparing Model....')
     model = VGG(opt.model, opt.in_channels, opt.num_classes, opt.batch_norm)

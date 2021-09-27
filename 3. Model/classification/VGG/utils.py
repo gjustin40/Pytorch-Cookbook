@@ -34,11 +34,11 @@ def make_folder(base_path, folder):
     except:
         exist_folders = os.listdir(f'./{base_path}')
         exist_folders.sort(key=lambda x: int(x[5:]))
-        print(exist_folders)
+        
         last_num = exist_folders[-1][5:]
         new_num = int(last_num) + 1
         new_folder = f'./{base_path}/train' + str(new_num)
-        print(new_folder)
+        
         os.mkdir(new_folder)
         
     return new_folder

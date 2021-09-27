@@ -19,14 +19,14 @@ class VGG(nn.Module):
         self.batch_norm = batch_norm
         
         self.features = self.make_features()
-        self.avg = nn.AdaptiveAvgPool2d(7)
+        self.avgpool = nn.AdaptiveAvgPool2d(7)
         self.flatten = nn.Flatten()
         self.classifier = self.make_classifier()
         self._weight_init()
         
     def forward(self, x):
         x = self.features(x)
-        x = self.avg(x)
+        x = self.avgpool(x)
         x = self.flatten(x)
         x = self.classifier(x)
         
