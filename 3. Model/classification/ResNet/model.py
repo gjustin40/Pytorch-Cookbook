@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim
+
+
+
 class BasicBlock(nn.Module):
     expansion = 1
     
@@ -37,7 +40,7 @@ class BasicBlock(nn.Module):
         return nn.Sequential(*layers)
     
 
-class Bottlenect(nn.Module):
+class Bottleneck(nn.Module):
     expansion = 4
     
     def __init__(self, in_planes, planes, stride):
