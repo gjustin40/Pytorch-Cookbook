@@ -1,5 +1,7 @@
-import argparse
 import os
+import time
+import datetime
+import argparse
 
 import torch
 import torch.nn as nn
@@ -86,9 +88,6 @@ def test(model, dataloader, loss_func, device, start_epoch, e):
         
 def main(opt):
     
-    if opt.modify:
-        assert 'The end'
-        return 0
     # make folder
     base_path = 'result'
     os.makedirs(base_path, exist_ok=True)
@@ -103,6 +102,7 @@ def main(opt):
     }
     data_path = datasets[opt.dataset]
     
+    # Load Dataset
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
@@ -127,7 +127,6 @@ def main(opt):
     
     # model
     print('Preparing Model....')
-    
     model = get_model(opt.model)
     model.to(device)
     
@@ -150,8 +149,6 @@ def main(opt):
     # optmizer
     optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001)
     loss_func = nn.CrossEntropyLoss()
-    scheduler = 
-    
     
     # Training
     start = time.time()
@@ -182,8 +179,6 @@ def main(opt):
         f.write(str(datetime.timedelta(seconds=end-start)))
         f.close()
                 
-import time
-import datetime
 
 if __name__ == '__main__':
     opt = parse_opt()
