@@ -11,13 +11,14 @@ from torchvision.datasets import CIFAR10, MNIST
 
 import matplotlib.pyplot as plt
 
-from model import VGG
+# from model import ResNet, Bottleneck, BasicBlock
+from models import get_model
 from utils import save_result, make_folder
 
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', help='A or B dataset', default='cifar10', type=str)
-    parser.add_argument('--model', help='Model if VGG', default='vgg16', type=str)
+    parser.add_argument('--model', help='Model Name', default='resnet18', type=str)
     parser.add_argument('--in_channels', help='Channels of input Image', default=3, type=int)
     parser.add_argument('--num_classes', help='Number of Classes', default=10, type=int)
     parser.add_argument('--batch_norm', help='Using Batch Normalization', default=False, type=bool)
@@ -30,6 +31,7 @@ def parse_opt():
     parser.add_argument('--resume', help='Start from checkpoint', default='', type=str)
     parser.add_argument('--save_result', help='Save Result of Train&Test', default=True, type=bool)
     parser.add_argument('--save_folder', help='Directory of Saving weight', default='train0', type=str)
+    parser.add_argument('--modify', help='Use If code need to be modify', action='store_true')
     opt = parser.parse_args()
     
     return opt
@@ -43,7 +45,7 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, e):
     data_size = 0
       
     for i, (images, labels) in enumerate(dataloader):
-        images, labels = images.cuda(), labels.cuda()
+        images, labels = images.to(device), labels.to(device)
         data_size += images.shape[0]
         
         optimizer.zero_grad()
@@ -69,7 +71,7 @@ def test(model, dataloader, loss_func, device, start_epoch, e):
     with torch.no_grad():
         data_size = 0
         for i, (images, labels) in enumerate(dataloader):
-            images, labels = images.cuda(), labels.cuda()
+            images, labels = images.to(device), labels.to(device)
             data_size += images.shape[0]
             
             outputs = model(images)
@@ -84,6 +86,9 @@ def test(model, dataloader, loss_func, device, start_epoch, e):
         
 def main(opt):
     
+    if opt.modify:
+        assert 'The end'
+        return 0
     # make folder
     base_path = 'result'
     os.makedirs(base_path, exist_ok=True)
@@ -122,7 +127,8 @@ def main(opt):
     
     # model
     print('Preparing Model....')
-    model = VGG(opt.model, opt.in_channels, opt.num_classes, opt.batch_norm)
+    
+    model = get_model(opt.model)
     model.to(device)
     
     # resuming
@@ -142,8 +148,10 @@ def main(opt):
         
         
     # optmizer
-    optimizer = optim.SGD(model.parameters(), lr=opt.lr, momentum=opt.momentum)
+    optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001)
     loss_func = nn.CrossEntropyLoss()
+    scheduler = 
+    
     
     # Training
     start = time.time()

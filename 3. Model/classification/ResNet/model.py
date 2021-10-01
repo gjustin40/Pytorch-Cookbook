@@ -44,7 +44,7 @@ class Bottleneck(nn.Module):
     expansion = 4
     
     def __init__(self, in_planes, planes, stride):
-        super(Bottlenect, self).__init__()
+        super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -116,3 +116,5 @@ class ResNet(nn.Module):
             self.in_planes = planes * block.expansion      
         
         return nn.Sequential(*layers)
+    
+    
