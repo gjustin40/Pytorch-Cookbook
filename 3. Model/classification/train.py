@@ -17,6 +17,9 @@ import matplotlib.pyplot as plt
 from models import get_model
 from utils import save_result, make_folder
 
+import warnings
+warnings.filterwarnings('ignore')
+
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', help='A or B dataset', default='cifar10', type=str)
@@ -39,7 +42,7 @@ def parse_opt():
     return opt
 
 
-def train(model, dataloader, optimizer, loss_func, device, start_epoch, e):
+def train(model, dataloader, optimizer, loss_func, device, start_epoch, scheduler, e):
     print(f'EPOCH[{e+1}/{start_epoch+opt.epoch}] Training....')
     model.train()
     iter_loss = []
@@ -60,7 +63,11 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, e):
         corrects += sum(outputs.argmax(axis=1) == labels).item()
 
         if ((i+1) % 40 == 0) or ((i+1) == len(dataloader)) :
-            print(f'Iter[{i+1}/{len(dataloader)}] --- Loss: {sum(iter_loss)/data_size:0.4} --- Accuracy: {corrects/data_size:0.2}')
+            print(f'Iter[{i+1}/{len(dataloader)}]'\
+                  f'--- Loss: {sum(iter_loss)/data_size:0.4f}'\
+                  f' --- Accuracy: {corrects/data_size:0.2f}'\
+                  f'--- LR: {scheduler.get_lr()[0]:0.4f}')
+            
     return [sum(iter_loss)/data_size, corrects/data_size]
 
 
@@ -82,7 +89,10 @@ def test(model, dataloader, loss_func, device, start_epoch, e):
             iter_loss.append(loss.item())
             corrects += sum(outputs.argmax(axis=1) == labels).item()
     
-    print(f'Iter[{i+1}/{len(dataloader)}] --- Loss: {sum(iter_loss)/data_size:0.4} --- Accuracy: {corrects/data_size:0.2}')
+    print(f'Iter[{i+1}/{len(dataloader)}]' \
+          f'--- Loss: {sum(iter_loss)/data_size:0.4}'\
+          f'--- Accuracy: {corrects/data_size:0.2}')
+    
     return [sum(iter_loss)/data_size, corrects/data_size]
             
         
@@ -94,13 +104,14 @@ def main(opt):
     result_path = make_folder(base_path, opt.save_folder)      
     
     # Dataset
+    from datasets import get_dataset_path
     print('Preparing Dataset....')
-    datasets = {
-        'mnist': r'C:\Users\gjust\Documents\Github\data',
-        'cifar10': r'C:\Users\gjust\Documents\Github\data',
-        'cifar100': r'C:\Users\gjust\Documents\Github\data'
-    }
-    data_path = datasets[opt.dataset]
+    # datasets = {
+    #     'mnist': r'C:\Users\gjust\Documents\Github\data',
+    #     'cifar10': r'C:\Users\gjust\Documents\Github\data',
+    #     'cifar100': r'C:\Users\gjust\Documents\Github\data'
+    # }
+    data_path = get_dataset_path[opt.dataset]
     
     # Load Dataset
     transform = transforms.Compose([
@@ -127,7 +138,7 @@ def main(opt):
     
     # model
     print('Preparing Model....')
-    model = get_model(opt.model)
+    model = get_model(opt.model, opt.num_classes)
     model.to(device)
     
     # resuming
@@ -147,14 +158,16 @@ def main(opt):
         
         
     # optmizer
-    optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001)
     loss_func = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
     
     # Training
     start = time.time()
     for e in range(start_epoch, start_epoch+opt.epoch):
-        train_result += train(model, train_loader, optimizer, loss_func, device, start_epoch, e)
+        train_result += train(model, train_loader, optimizer, loss_func, device, start_epoch, scheduler, e)
         test_result += test(model, test_loader, loss_func, device, start_epoch, e)
+        scheduler.step()
         
         # Save checkpoint
         if test_result[1::2][-1] > best_acc:
@@ -178,7 +191,8 @@ def main(opt):
     with open(f'{result_path}/time_log.txt', 'w') as f:
         f.write(str(datetime.timedelta(seconds=end-start)))
         f.close()
-                
+    
+          
 
 if __name__ == '__main__':
     opt = parse_opt()
