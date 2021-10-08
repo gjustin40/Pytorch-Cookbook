@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 
 # from model import ResNet, Bottleneck, BasicBlock
 from models import get_model
+from datasets import get_dataset
 from utils import save_result, make_folder
 
 import warnings
@@ -104,31 +105,15 @@ def main(opt):
     result_path = make_folder(base_path, opt.save_folder)      
     
     # Dataset
-    from datasets import get_dataset_path
     print('Preparing Dataset....')
-    # datasets = {
-    #     'mnist': r'C:\Users\gjust\Documents\Github\data',
-    #     'cifar10': r'C:\Users\gjust\Documents\Github\data',
-    #     'cifar100': r'C:\Users\gjust\Documents\Github\data'
-    # }
-    data_path = get_dataset_path[opt.dataset]
-    
-    # Load Dataset
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
     ])
-        
-    if opt.dataset == 'mnist':
-        train_set = MNIST(root=data_path, transform=transform, train=True, download=True)
-        test_set = MNIST(root=data_path, transform=transform, train=False, download=True)
-    elif opt.dataset == 'cifar10':
-        train_set = CIFAR10(root=data_path, transform=transform, train=True, download=True)
-        test_set = CIFAR10(root=data_path, transform=transform, train=False, download=True)
-    elif opt.dataset == 'cifar100':
-        train_set = CIFAR100(root=data_path, transform=transform, train=True, download=True)
-        test_set = CIFAR100(root=data_path, transform=transform, train=False, download=True)
-               
+    
+    train_set, test_set = get_dataset(opt.dataset, transform)
+    
+    # Load Dataset
     train_loader = DataLoader(train_set, batch_size=opt.train_batch_size, shuffle=True)
     test_loader = DataLoader(test_set, batch_size=opt.test_batch_size, shuffle=False)
      
@@ -145,12 +130,15 @@ def main(opt):
     if opt.resume:
         print('Resuming from checkpoint')
         assert os.path.isdir(f'{opt.resume}')
+        
         checkpoint = torch.load(f'{opt.resume}/{opt.model}_ckpt.pth')
         model.load_state_dict(checkpoint['model'])
+        
         best_acc = checkpoint['acc']
         start_epoch = checkpoint['epoch']
         train_result = checkpoint['train_result']
         test_result = checkpoint['test_result']
+        
     else:
         start_epoch = 0
         best_acc = 0
@@ -196,6 +184,5 @@ def main(opt):
 
 if __name__ == '__main__':
     opt = parse_opt()
-    
     main(opt)
     
