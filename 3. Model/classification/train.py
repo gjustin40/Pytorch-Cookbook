@@ -52,8 +52,10 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
     corrects = 0
     data_size = 0
     
-    train_acc1 = torchmetrics.Accuracy().to(device)
-    train_acc5 = torchmetrics.Accuracy(top_k=5).to(device)
+    train_acc1 = torchmetrics.Accuracy(num_classes=10).to(device)
+    train_acc5 = torchmetrics.Accuracy(num_classes=10, top_k=5).to(device)
+    # train_precision = torchmetrics.Precision(num_classes=10, multiclass=True).to(device)
+    # train_recall = torchmetrics.Recall(num_classes=10, multiclass=True).to(device)
     
     for i, (images, labels) in enumerate(dataloader):
         images, labels = images.to(device), labels.to(device)
@@ -65,16 +67,25 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
         loss.backward()
         optimizer.step()
 
+        train_acc1(outputs, labels)
+        train_acc5(outputs, labels)
+        # train_precision(outputs, labels)
+        # train_recall(outputs, labels)
+
         iter_loss.append(loss.item())
         corrects += sum(outputs.argmax(axis=1) == labels).item()
 
         if ((i+1) % 40 == 0) or ((i+1) == len(dataloader)) :
             print(f'Iter[{i+1}/{len(dataloader)}]'\
                   f'--- Loss: {sum(iter_loss)/data_size:0.4f}'\
-                  f' --- Accuracy: {corrects/data_size:0.2f}'\
+                #   f' --- Accuracy: {corrects/data_size:0.2f}'\
+                  f' --- Accuracy1: {train_acc1.compute():0.2f}'\
+                  f' --- Accuracy5: {train_acc5.compute():0.2f}'\
+                #   f' --- Precision: {train_precision.compute():0.2f}'\
+                #   f' --- Recall: {train_recall.compute():0.2f}'\
                   f'--- LR: {scheduler.get_lr()[0]:0.4f}')
             
-    return [sum(iter_loss)/data_size, corrects/data_size]
+    return [sum(iter_loss)/data_size, train_acc1.compute().cpu()]
 
 
 
@@ -170,6 +181,7 @@ def main(opt):
     
     # Training
     start = time.time()
+    
     for e in range(start_epoch, start_epoch+opt.epoch):
         train_result += train(model, train_loader, optimizer, loss_func, device, start_epoch, scheduler, e)
         test_result += test(model, test_loader, loss_func, device, start_epoch, e)
@@ -195,6 +207,7 @@ def main(opt):
             
     end = time.time()
     with open(f'{result_path}/time_log.txt', 'w') as f:
+        f.write(str(datetime.timedelta(seconds=end-start)))
         f.write(str(datetime.timedelta(seconds=end-start)))
         f.close()
     

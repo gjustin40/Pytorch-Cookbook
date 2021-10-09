@@ -73,6 +73,6 @@ if __name__ == '__main__':
     model = VGG('vgg16')
     
     # print(model(x).shape)
-    for name, p in model16.named_parameters():
+    for name, p in model.named_parameters():
         print(name)
     # print(model)
