@@ -117,7 +117,11 @@ class BasicConv2d(nn.Module):
     
 
 if __name__ == '__main__':
+    from torchvision.models import googlenet
+    
     x = torch.randn(8, 3, 843, 134)
+    google = googlenet()
     model = GoogLeNet()
+    print(google(x).shape)
     print(model(x).shape)
       

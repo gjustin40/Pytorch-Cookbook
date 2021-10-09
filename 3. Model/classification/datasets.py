@@ -33,5 +33,5 @@ def get_dataset(name, transform=None):
     return train_set, test_set
 
 if __name__ == '__main__':
-    data_path = get_dataset_path('cifar10')
+    data_path = get_dataset('cifar10')
     print(data_path)

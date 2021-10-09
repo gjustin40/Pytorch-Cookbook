@@ -11,6 +11,8 @@ import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets import CIFAR10, MNIST
 
+import torchmetrics
+
 import matplotlib.pyplot as plt
 
 # from model import ResNet, Bottleneck, BasicBlock
@@ -49,7 +51,10 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
     iter_loss = []
     corrects = 0
     data_size = 0
-      
+    
+    train_acc1 = torchmetrics.Accuracy().to(device)
+    train_acc5 = torchmetrics.Accuracy(top_k=5).to(device)
+    
     for i, (images, labels) in enumerate(dataloader):
         images, labels = images.to(device), labels.to(device)
         data_size += images.shape[0]
@@ -72,11 +77,14 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
     return [sum(iter_loss)/data_size, corrects/data_size]
 
 
+
 def test(model, dataloader, loss_func, device, start_epoch, e):
     print(f'EPOCH[{e+1}/{start_epoch+opt.epoch}] Teseting....')
     model.eval()
     iter_loss = []
     corrects = 0
+    
+    test_metrics = torchmetrics.Accuracy().to(device)
     
     with torch.no_grad():
         data_size = 0
@@ -86,13 +94,15 @@ def test(model, dataloader, loss_func, device, start_epoch, e):
             
             outputs = model(images)
             loss = loss_func(outputs, labels)
+            test_metrics(outputs, labels)
             
             iter_loss.append(loss.item())
             corrects += sum(outputs.argmax(axis=1) == labels).item()
     
     print(f'Iter[{i+1}/{len(dataloader)}]' \
           f'--- Loss: {sum(iter_loss)/data_size:0.4}'\
-          f'--- Accuracy: {corrects/data_size:0.2}')
+          f'--- Accuracy: {corrects/data_size:0.2}'\
+          f'--- Accuracy: {test_metrics.compute():0.4f}')
     
     return [sum(iter_loss)/data_size, corrects/data_size]
             
@@ -106,7 +116,14 @@ def main(opt):
     
     # Dataset
     print('Preparing Dataset....')
+    transform = {
+        'trian': transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            
+        ])
+    }
     transform = transforms.Compose([
+        transforms.
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
     ])
@@ -122,6 +139,7 @@ def main(opt):
     print(f'Using {device}')
     
     # model
+    from torchvision.models import vgg16_bn
     print('Preparing Model....')
     model = get_model(opt.model, opt.num_classes)
     model.to(device)
@@ -148,7 +166,7 @@ def main(opt):
     # optmizer
     loss_func = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50)
     
     # Training
     start = time.time()
