@@ -1,7 +1,6 @@
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-*.txt
 data/cifar-10-batches-py/data_batch_2
 data/cifar-10-batches-py/data_batch_1
 data/cifar-10-batches-py/data_batch_3
