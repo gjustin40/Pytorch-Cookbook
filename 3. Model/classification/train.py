@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets import CIFAR10, MNIST
+from torchvision.transforms.transforms import RandomHorizontalFlip
 
 import torchmetrics
 
@@ -39,7 +40,6 @@ def parse_opt():
     parser.add_argument('--resume', help='Start from checkpoint', default='', type=str)
     parser.add_argument('--save_result', help='Save Result of Train&Test', default=True, type=bool)
     parser.add_argument('--save_folder', help='Directory of Saving weight', default='train0', type=str)
-    parser.add_argument('--modify', help='Use If code need to be modify', action='store_true')
     opt = parser.parse_args()
     
     return opt
@@ -105,6 +105,7 @@ def test(model, dataloader, loss_func, device, start_epoch, e):
             
             outputs = model(images)
             loss = loss_func(outputs, labels)
+            
             test_metrics(outputs, labels)
             
             iter_loss.append(loss.item())
@@ -112,10 +113,10 @@ def test(model, dataloader, loss_func, device, start_epoch, e):
     
     print(f'Iter[{i+1}/{len(dataloader)}]' \
           f'--- Loss: {sum(iter_loss)/data_size:0.4}'\
-          f'--- Accuracy: {corrects/data_size:0.2}'\
+        #   f'--- Accuracy: {corrects/data_size:0.2}'\
           f'--- Accuracy: {test_metrics.compute():0.4f}')
     
-    return [sum(iter_loss)/data_size, corrects/data_size]
+    return [sum(iter_loss)/data_size, test_metrics.compute()]
             
         
 def main(opt):
@@ -126,20 +127,25 @@ def main(opt):
     result_path = make_folder(base_path, opt.save_folder)      
     
     # Dataset
-    print('Preparing Dataset....')
+    print(f'Preparing Dataset....{opt.dataset}')
     transform = {
         'trian': transforms.Compose([
             transforms.RandomHorizontalFlip(),
             
         ])
     }
-    transform = transforms.Compose([
-        transforms.
+    train_transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
     ])
     
-    train_set, test_set = get_dataset(opt.dataset, transform)
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+    ])
+    
+    train_set, test_set = get_dataset(opt.dataset, train_transform, test_transform)
     
     # Load Dataset
     train_loader = DataLoader(train_set, batch_size=opt.train_batch_size, shuffle=True)
@@ -151,7 +157,7 @@ def main(opt):
     
     # model
     from torchvision.models import vgg16_bn
-    print('Preparing Model....')
+    print(f'Preparing Model....{opt.model}')
     model = get_model(opt.model, opt.num_classes)
     model.to(device)
     
