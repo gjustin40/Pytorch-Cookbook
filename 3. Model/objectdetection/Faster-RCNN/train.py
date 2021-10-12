@@ -3,6 +3,9 @@ import argparse
 import time
 from time import strftime, gmtime
 import datetime
+import random
+
+import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
@@ -16,6 +19,14 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 from utils.dataset import MyCocoLimit
+from utils.metric import get_bbox, mean_average_precision
+
+random_seed = 40
+torch.set_printoptions(precision=5, sci_mode=False)
+torch.cuda.manual_seed(random_seed)
+torch.manual_seed(random_seed)
+random.seed(random_seed)
+np.random.seed(random_seed)
 
 def parse_opt():
     parser = argparse.ArgumentParser()
@@ -70,8 +81,8 @@ def train(model, dataloader, optimizer, device, EPOCH, e):
         iter_loss.append(loss.item())
         
         end = time.time()
-        if ((i+1) % 40 == 0) or ((i+1) == len(dataloader)):
-            times = (end-start)*40 if not (i+1) == len(dataloader) else (end-start)*i
+        if ((i+1) % 200 == 0) or ((i+1) == len(dataloader)):
+            times = (end-start)*200 if not (i+1) == len(dataloader) else (end-start)*i
             
             print(f'EPOCH: [{e}/{EPOCH}]' \
                   f' --- Iter: [{i+1}/{len(dataloader)}]'\
@@ -79,9 +90,42 @@ def train(model, dataloader, optimizer, device, EPOCH, e):
                   f' --- Time: {strftime("%H:%M:%S", gmtime(times))}'
                   f' --- LR: ')
 
-def test():
-    pass
+@torch.no_grad()
+def test(model, dataloader, device, EPOCH, e):
+    start = time.time()
+    model.eval()
+    
+    total_gt_bboxes = torch.tensor([])
+    total_pred_bboxes = torch.tensor([])
+    for i, (img_ids, images, targets) in enumerate(dataloader):
+        images = [img.to(device) for img in images]
+        outputs = model(images)
 
+        for img_id, target, output in zip(img_ids, targets, outputs):
+            gt_bboxes = get_bbox(img_id, target)
+            pred_bboxes = get_bbox(img_id, output, pred=True)
+
+            total_gt_bboxes = torch.cat([total_gt_bboxes, gt_bboxes])
+            total_pred_bboxes = torch.cat([total_pred_bboxes, pred_bboxes])
+            
+    end = time.time()
+    print('Shape of total ground Truths bboxes :', total_gt_bboxes.shape)
+    print('Shape of total predicted bboxes :', total_pred_bboxes.shape)
+    print(strftime("%H:%M:%S", gmtime(end-start)))
+    
+    start = time.time()
+    mAP, AP_per_classes = mean_average_precision(total_pred_bboxes,
+                                             total_gt_bboxes,
+                                             iou_threshold=0.5,
+                                             box_format='coco',
+                                             num_classes=4)
+    
+    end = time.time()
+    print('mAP :', mAP)
+    print(AP_per_classes)
+    print(strftime("%H:%M:%S", gmtime(end-start)))
+    
+    
 def collate_fn(batch):
     return tuple(zip(*batch))
     
@@ -109,6 +153,8 @@ def main():
     
     # GPU
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device == 'cuda':
+        torch.backends.cudnn.benchmark = True
     print(f'Using {device}')
     
     # Model
@@ -126,9 +172,10 @@ def main():
     
     # Training
     print('Training....')
-    EPOCH = 10
+    EPOCH = 50
     for e in range(EPOCH):
         train(model, test_loader, optimizer, device, EPOCH, e)
+        test(model, test_loader, device, EPOCH, e)
     
 if __name__ == '__main__':
     opt = parse_opt()
