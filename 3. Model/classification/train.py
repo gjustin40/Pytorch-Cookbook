@@ -1,7 +1,9 @@
 import os
 import time
+from time import strftime, gmtime
 import datetime
 import argparse
+import random
 
 import torch
 import torch.nn as nn
@@ -11,9 +13,9 @@ import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets import CIFAR10, MNIST
 from torchvision.transforms.transforms import RandomHorizontalFlip
-
 import torchmetrics
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 # from model import ResNet, Bottleneck, BasicBlock
@@ -23,6 +25,13 @@ from utils import save_result, make_folder
 
 import warnings
 warnings.filterwarnings('ignore')
+
+random_seed = 40
+torch.set_printoptions(precision=5, sci_mode=False)
+torch.cuda.manual_seed(random_seed)
+torch.manual_seed(random_seed)
+random.seed(random_seed)
+np.random.seed(random_seed)
 
 def parse_opt():
     parser = argparse.ArgumentParser()
@@ -58,6 +67,8 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
     # train_recall = torchmetrics.Recall(num_classes=10, multiclass=True).to(device)
     
     for i, (images, labels) in enumerate(dataloader):
+        start = time.time()
+        
         images, labels = images.to(device), labels.to(device)
         data_size += images.shape[0]
         
@@ -75,7 +86,9 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
         iter_loss.append(loss.item())
         corrects += sum(outputs.argmax(axis=1) == labels).item()
 
+        end = time.time()
         if ((i+1) % 40 == 0) or ((i+1) == len(dataloader)) :
+            times = (end-start)*40 if not (i+1) == len(dataloader) else (end-start)*i
             print(f'Iter[{i+1}/{len(dataloader)}]'\
                   f'--- Loss: {sum(iter_loss)/data_size:0.4f}'\
                 #   f' --- Accuracy: {corrects/data_size:0.2f}'\
@@ -83,6 +96,7 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
                   f' --- Accuracy5: {train_acc5.compute():0.2f}'\
                 #   f' --- Precision: {train_precision.compute():0.2f}'\
                 #   f' --- Recall: {train_recall.compute():0.2f}'\
+                  f'--- Time:{strftime("%H:%M:%S", gmtime(times))}'\
                   f'--- LR: {scheduler.get_lr()[0]:0.4f}')
             
     return [sum(iter_loss)/data_size, train_acc1.compute().cpu()]
