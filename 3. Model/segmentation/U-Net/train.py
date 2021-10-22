@@ -15,6 +15,7 @@ import cv2
 from utils.dataset import PennFudanDataset
 from utils.utils import collate_fn
 from utils.engine import train_one_epoch, evaluate
+from model import UNet
 
 # Dataloader
 train_transform = A.Compose([
@@ -36,31 +37,13 @@ testset = PennFudanDataset(base_url=base_url, transform=test_transform)
 train_loader = DataLoader(trainset, batch_size=2, shuffle=True, collate_fn=collate_fn)
 test_loader = DataLoader(testset, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
-# Model
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
-num_classes = 2
-
-model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
-in_features = model.roi_heads.box_predictor.cls_score.in_features
-model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
-hidden_layer = 256
-model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask,
-                                                    hidden_layer,
-                                                    num_classes)
-
-
-
-# Training
+# Cuda
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(device)
+
+# Model
+model = UNet()
 model.to(device)
 
-optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, weight_decay=0.0005)
-
-EPOCHS = 10
-
-for epoch in range(EPOCHS):
-    train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=10)
-    evaluate(model, test_loader, device=device)
+print(model)
