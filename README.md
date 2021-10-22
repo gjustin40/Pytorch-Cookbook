@@ -31,9 +31,9 @@ YOLOv1|[Blog](https://gjustin40.github.io/objectdetection/2021/07/07/Model-Yolov
 <br>
 
 ## Segmentation
-- [implementation](https://github.com/gjustin40/Pytorch-Cookbook/tree/master/3.%20Model/segmentation)
+- [implementation](https://github.com/gjustin40/Pytorch-Cookbook/tree/master/3.%20Model/segmentation)   
 
 Model|Blog|Code|paper|
 --------|--------|:-------:|:----------:|
-FCN|[Blog](https://gjustin40.github.io/segmentation/2021/02/13/Model-FCN.html)|[Code]()|[Fully Convolution Networks for Semantic Segmentation](https://arxiv.org/abs/1411.4038)|
+FCN|[Blog](https://gjustin40.github.io/segmentation/2021/02/13/Model-FCN.html)|[Code]|[Fully Convolution Networks for Semantic Segmentation](https://arxiv.org/abs/1411.4038)|
 U-Net|[Blog](https://gjustin40.github.io/segmentation/2021/02/13/Model-FCN.html)|[Code](https://github.com/gjustin40/Pytorch-Cookbook/tree/master/3.%20Model/segmentation/U-Net)|[U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)|
