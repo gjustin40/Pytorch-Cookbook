@@ -27,6 +27,7 @@ Model|Blog|Code|paper|
 --------|--------|:-------:|:----------:|
 RCNN|[Blog](https://gjustin40.github.io/objectdetection/2021/01/28/Model-RCNN.html)|[Code]|[Rich feature hierarchies for accurate object detection and semantic segmentation](https://arxiv.org/abs/1311.2524)|
 YOLOv1|[Blog](https://gjustin40.github.io/objectdetection/2021/07/07/Model-Yolov1.html)|[Code]|[You Only Look Once: Unified, Real-Time Object Detection](https://arxiv.org/abs/1506.02640)|
+SSD||||
 
 <br>
 
