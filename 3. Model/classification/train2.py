@@ -8,7 +8,7 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets import CIFAR10, MNIST
@@ -36,9 +36,10 @@ np.random.seed(random_seed)
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', help='A or B dataset', default='cifar10', type=str)
-    parser.add_argument('--model', help='Model Name', default='resnet18', type=str)
+    parser.add_argument('--model', help='Model Name', default='vgg', type=str)
     parser.add_argument('--in_channels', help='Channels of input Image', default=3, type=int)
     parser.add_argument('--num_classes', help='Number of Classes', default=10, type=int)
+    parser.add_argument('--pretrained', help='Transfer Learning', action='store_true')
     parser.add_argument('--batch_norm', help='Using Batch Normalization', default=False, type=bool)
     parser.add_argument('--train_batch_size', help='Batch size of Training dataset', default=256, type=int)
     parser.add_argument('--test_batch_size', help='Batch size of Testing dataset', default=128, type=int)
@@ -49,6 +50,7 @@ def parse_opt():
     parser.add_argument('--resume', help='Start from checkpoint', default='', type=str)
     parser.add_argument('--save_result', help='Save Result of Train&Test', default=True, type=bool)
     parser.add_argument('--save_folder', help='Directory of Saving weight', default='train0', type=str)
+    parser.add_argument('--testing', help='Testing Code', action='store_true')
     opt = parser.parse_args()
     
     return opt
@@ -61,8 +63,8 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
     corrects = 0
     data_size = 0
     
-    train_acc1 = torchmetrics.Accuracy(num_classes=10).to(device)
-    train_acc5 = torchmetrics.Accuracy(num_classes=10, top_k=5).to(device)
+    train_acc1 = torchmetrics.Accuracy(num_classes=opt.num_classes).to(device)
+    # train_acc5 = torchmetrics.Accuracy(num_classes=opt.num_classes, top_k=5).to(device)
     # train_precision = torchmetrics.Precision(num_classes=10, multiclass=True).to(device)
     # train_recall = torchmetrics.Recall(num_classes=10, multiclass=True).to(device)
     
@@ -79,7 +81,7 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
         optimizer.step()
 
         train_acc1(outputs, labels)
-        train_acc5(outputs, labels)
+        # train_acc5(outputs, labels)
         # train_precision(outputs, labels)
         # train_recall(outputs, labels)
 
@@ -93,7 +95,7 @@ def train(model, dataloader, optimizer, loss_func, device, start_epoch, schedule
                   f'--- Loss: {sum(iter_loss)/data_size:0.4f}'\
                 #   f' --- Accuracy: {corrects/data_size:0.2f}'\
                   f' --- Accuracy1: {train_acc1.compute():0.2f}'\
-                  f' --- Accuracy5: {train_acc5.compute():0.2f}'\
+                #   f' --- Accuracy5: {train_acc5.compute():0.2f}'\
                 #   f' --- Precision: {train_precision.compute():0.2f}'\
                 #   f' --- Recall: {train_recall.compute():0.2f}'\
                   f'--- Time:{strftime("%H:%M:%S", gmtime(times))}'\
@@ -109,7 +111,7 @@ def test(model, dataloader, loss_func, device, start_epoch, e):
     iter_loss = []
     corrects = 0
     
-    test_metrics = torchmetrics.Accuracy().to(device)
+    test_metrics = torchmetrics.Accuracy(num_classes=opt.num_classes).to(device)
     
     with torch.no_grad():
         data_size = 0
@@ -130,7 +132,7 @@ def test(model, dataloader, loss_func, device, start_epoch, e):
         #   f'--- Accuracy: {corrects/data_size:0.2}'\
           f'--- Accuracy: {test_metrics.compute():0.4f}')
     
-    return [sum(iter_loss)/data_size, test_metrics.compute()]
+    return [sum(iter_loss)/data_size, test_metrics.compute().cpu()]
             
         
 def main(opt):
@@ -142,41 +144,37 @@ def main(opt):
     
     # Dataset
     print(f'Preparing Dataset....{opt.dataset}')
-    transform = {
-        'trian': transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            
-        ])
-    }
     train_transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
+        transforms.Resize((32,32)),
+        # transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
     ])
     
     test_transform = transforms.Compose([
+        transforms.Resize((32,32)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
     ])
     
     train_set, test_set = get_dataset(opt.dataset, train_transform, test_transform)
+    if opt.testing:
+        train_set = Subset(train_set, range(opt.train_batch_size))
+        test_set = Subset(test_set, range(opt.test_batch_size))
     
     # Load Dataset
     train_loader = DataLoader(train_set, batch_size=opt.train_batch_size, shuffle=True)
     test_loader = DataLoader(test_set, batch_size=opt.test_batch_size, shuffle=False)
+
      
     # GPU
-    if torch.cuda.is_available() and opt.cuda:
-        device = 'cuda'
-        torch.backends.cudnn.benchmark = True
-    else:
-        device = 'cpu'
+    device = 'cuda' if (torch.cuda.is_available() and opt.cuda) else 'cpu'
     print(f'Using {device}')
     
     # model
     from torchvision.models import vgg16_bn
     print(f'Preparing Model....{opt.model}')
-    model = get_model(opt.model, opt.num_classes)
+    model = get_model(opt.model, opt.num_classes, pretrained=opt.pretrained)
     model.to(device)
     
     # resuming
@@ -232,11 +230,8 @@ def main(opt):
     end = time.time()
     with open(f'{result_path}/time_log.txt', 'w') as f:
         f.write(str(datetime.timedelta(seconds=end-start)))
-        f.write(str(datetime.timedelta(seconds=end-start)))
         f.close()
     
-          
-
 if __name__ == '__main__':
     opt = parse_opt()
     main(opt)
