@@ -4,6 +4,7 @@ import glob
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
+import torch.optim as optim
 import torchvision
 from torchvision.utils import draw_segmentation_masks
 
@@ -43,7 +44,17 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(device)
 
 # Model
-model = UNet()
+model = UNet(input_size=3, num_classes=2)
 model.to(device)
 
-print(model)
+
+# optimizer
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+
+
+# Training
+EPOCHS = 10
+
+for epoch in range(EPOCHS):
+    train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=10)
+    evaluate(model, test_loader, device=device)

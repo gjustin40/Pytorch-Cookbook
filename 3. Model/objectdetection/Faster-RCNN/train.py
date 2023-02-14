@@ -18,8 +18,8 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from utils.dataset import MyCocoLimit
-from utils.metric import get_bbox, mean_average_precision
+from dataset import MyCocoLimit
+from metric import get_bbox, mean_average_precision
 
 random_seed = 40
 torch.set_printoptions(precision=5, sci_mode=False)
@@ -82,12 +82,12 @@ def train(model, dataloader, optimizer, device, EPOCH, e):
         
         end = time.time()
         if ((i+1) % 200 == 0) or ((i+1) == len(dataloader)):
-            times = (end-start)*200 if not (i+1) == len(dataloader) else (end-start)*i
+            times = (end-start)*200 if not (i+1) == len(dataloader) else (end-start)*(i+1)
             
             print(f'EPOCH: [{e}/{EPOCH}]' \
                   f' --- Iter: [{i+1}/{len(dataloader)}]'\
                   f' --- Loss: {sum(iter_loss)/data_size:0.4f}'\
-                  f' --- Time: {strftime("%H:%M:%S", gmtime(times))}'
+                  f' --- Time: {strftime("%H:%M:%S", gmtime(times))}'\
                   f' --- LR: ')
 
 @torch.no_grad()
@@ -134,11 +134,11 @@ def main():
         
     # Dataset
     print(f'Preparing Dataset....COCO Dataset')
-    # train_path = r'C:\Users\gjust\Documents\Github\data\COCO\train2017'
-    # train_ann = r'C:\Users\gjust\Documents\Github\data\COCO\annotations\instances_train2017.json'
+    train_path = r'C:\Users\gjust\Documents\Github\data\COCO\train2017'
+    train_ann = r'C:\Users\gjust\Documents\Github\data\COCO\annotations\instances_train2017.json'
     test_path = r'C:\Users\gjust\Documents\Github\data\COCO\val2017'
     test_ann = r'C:\Users\gjust\Documents\Github\data\COCO\annotations\instances_val2017.json'
-    class_list = ['person', 'dog', 'car']
+    class_list = ['person']
     
     transform = A.Compose([
         A.Resize(width=512, height=512),
@@ -146,9 +146,9 @@ def main():
         ToTensorV2()
     ], bbox_params=A.BboxParams(format='coco', label_fields=['class_labels']))
     
-    # trainset = MyCocoLimit(root=train_path, annFile=train_ann, class_list=class_list, transform=transform)
+    trainset = MyCocoLimit(root=train_path, annFile=train_ann, class_list=class_list, transform=transform)
     testset = MyCocoLimit(root=test_path, annFile=test_ann, class_list=class_list, transform=transform)
-    # train_loader = DataLoader(trainset, batch_size=4, shuffle=True, collate_fn=collate_fn)
+    train_loader = DataLoader(trainset, batch_size=4, shuffle=True, collate_fn=collate_fn)
     test_loader = DataLoader(testset, batch_size=4, shuffle=False, collate_fn=collate_fn)
     
     # GPU
@@ -160,6 +160,9 @@ def main():
     # Model
     print(f'Preparing Model....Faster RCNN')
     model = fasterrcnn_resnet50_fpn(pretrained=True)
+    for p in model.parameters():
+        p.requires_grad = False
+        
     num_classes = len(class_list) + 1
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
@@ -168,14 +171,14 @@ def main():
     # resuming
     
     # Optimizer
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    optimizer = optim.SGD(model.parameters(), lr=0.01)
     
     # Training
     print('Training....')
     EPOCH = 50
     for e in range(EPOCH):
-        train(model, test_loader, optimizer, device, EPOCH, e)
-        test(model, test_loader, device, EPOCH, e)
+        train(model, train_loader, optimizer, device, EPOCH, e)
+        # test(model, test_loader, device, EPOCH, e)
     
 if __name__ == '__main__':
     opt = parse_opt()

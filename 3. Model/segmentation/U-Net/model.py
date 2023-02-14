@@ -43,7 +43,7 @@ class UNet(nn.Module):
         
         up2 = self.up3(up3)
         up2 = torch.cat((self._crop(down2, up2.shape[2]), up2), dim=1)
-        
+    
         up1 = self.up2(up2)
         up1 = torch.cat((self._crop(down1, up1.shape[2]), up1), dim=1)
         
@@ -54,6 +54,7 @@ class UNet(nn.Module):
     
     def _crop(self, x, size):
         return transforms.CenterCrop(size)(x)
+        
         
 class ConvBlock(nn.Module):
     def __init__(self, input_size, output_size, pool_layer=False):
@@ -78,15 +79,29 @@ class ConvBlock(nn.Module):
         
         return x
     
-    
 
 if __name__ == '__main__':
-    model = UNet()
-    print(model)
-    example = torch.randn(1, 1, 572, 572)
-    print(example.shape)
-
-    model = UNet()
+    from PIL import Image
+    import matplotlib.pyplot as plt
+    
+    image_ori = Image.open(r'C:\Users\gjust\Documents\Github\data\fruit\apple\apple7.jpg')
+    image = np.array(image_ori)
+    image = torch.as_tensor(image, dtype=torch.float32).permute(2,0,1)
+    image = image.unsqueeze(0)
+    
+    print(image.shape)
+    print(image.dtype)
+    model = UNet(input_size=3)
     model.cuda()
-    output = model(example.cuda())
-    print(output.shape)        
+    output = model(image.cuda())
+    print(output.shape)
+    
+    plt.figure(figsize=(10,10))
+    plt.subplot(1,3,1)
+    plt.imshow(image_ori)
+    plt.subplot(1,3,2)
+    plt.imshow(np.array(output.cpu().squeeze().permute(1,2,0).detach())[:,:,0])
+    plt.subplot(1,3,3)
+    plt.imshow(np.array(output.cpu().squeeze().permute(1,2,0).detach())[:,:,1])
+    plt.show()
+    
