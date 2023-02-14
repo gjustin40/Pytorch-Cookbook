@@ -18,3 +18,36 @@ data/MNIST/raw/train-labels-idx1-ubyte
 data/cifar-10-batches-py/test_batch
 
 .ipynb_checkpoints
+
+### venv ###
+# Virtualenv
+# http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
+.Python
+[Bb]in
+[Ii]nclude
+[Ll]ib
+[Ll]ib64
+[Ll]ocal
+[Ss]cripts
+pyvenv.cfg
+.venv
+pip-selfcheck.json
+
+
+*.pth
+*.jpg
+*.png
+*.JPG
+*.mp4
+*.txt
+*.json
+*.gif
+*.zip
+*.gz
+*.exe
+*.pkl
+*.pth
+*.pt
+*.pyc
+*checkpoint.ipynb
+*.caffemodel
